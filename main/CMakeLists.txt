@@ -9,6 +9,7 @@ idf_component_register(
         "assistant/onewire.c"
         "assistant/i2cdev_legacy.c"
         "tasks/application/application.c"
+        "tasks/humidifier/humidifier.c"
         "tasks/resistance/resistance.c"
 
     INCLUDE_DIRS
@@ -20,5 +21,6 @@ idf_component_register(
         "assistant"
         "tasks"
         "tasks/application"
+        "tasks/humidifier"
         "tasks/resistance"
 )

@@ -4,6 +4,9 @@
 
 #include "hardware/files/fs_manager.h"
 #include "hardware/temperature/temperature.h"
+#include "hardware/humidity/humidity.h"
+#include "tasks/humidifier/humidifier.h"
+#include "tasks/resistance/resistance.h"
 
 #define TAG "MAIN"
 
@@ -24,5 +27,21 @@ void app_main()
 		return;
 	}
 
-	
+	res = humidity_init();
+	{
+		ESP_LOGE(TAG, "Failed to init humidity");
+		return;
+	}
+
+	res = humidifier_init();
+	{
+		ESP_LOGE(TAG, "Failed to init humidifier");
+		return;
+	}
+
+	res = resistance_init();
+	{
+		ESP_LOGE(TAG, "Failed to init resistance");
+		return;
+	}
 }

@@ -115,9 +115,7 @@ esp_err_t resistance_init(void)
 esp_err_t resistance_set(uint16_t percent)
 {
     if (percent > 100)
-    {
-        return ESP_ERR_INVALID_ARG;
-    }
+        percent = 100;
 
     if (xSemaphoreTake(resistance_semaphore, pdMS_TO_TICKS(RESISTANCE_DELAY_SEMAPHORE_TIMEOUT)) == pdTRUE)
     {
