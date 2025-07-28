@@ -32,7 +32,7 @@ esp_err_t humidity_init(void)
     res = aht_init(&g_humidity_dev);
     if (res != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to init aht device(E: %s)", esp_err_to_name(res));
+        ESP_LOGE(TAG, "Failed to init aht device (E: %s)", esp_err_to_name(res));
         return res;
     }
 
@@ -40,12 +40,12 @@ esp_err_t humidity_init(void)
     res = aht_get_status(&g_humidity_dev, NULL, &calibration);
     if (res != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to get status device(E:%s)", esp_err_to_name);
+        ESP_LOGE(TAG, "Failed to get status device (E: %s)", esp_err_to_name(res));
         return res;
     }
     if (!calibration)
     {
-        ESP_LOGW(TGA, "Device not calibrated");
+        ESP_LOGW(TAG, "Device not calibrated");
     }
 
     return ESP_OK;
@@ -53,11 +53,11 @@ esp_err_t humidity_init(void)
 
 float humidity_get(void)
 {
-    float humidity = 0.0
+    float humidity = 0.0;
     esp_err_t res = aht_get_data(&g_humidity_dev, NULL, &humidity);
-    if(res!= ESP_OK)
+    if (res != ESP_OK)
     {
-        ESP_LOGE(TAG,"Failed to get humidity (E: %s)", esp_err_to_name(res));
+        ESP_LOGE(TAG, "Failed to get humidity (E: %s)", esp_err_to_name(res));
         return 0.0;
     }
     return humidity;

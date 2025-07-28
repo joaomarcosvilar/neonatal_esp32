@@ -4,7 +4,7 @@
 
 #include <inttypes.h>
 #include "driver/gpio.h"
-#include "library/onewire.h"
+#include "assistant/onewire.h"
 
 #include "ds18x20.h"
 #include "hardware/files/fs_manager.h"

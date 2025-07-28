@@ -7,7 +7,7 @@ idf_component_register(
         "hardware/temperature/temperature.c"
         "hardware/temperature/ds18x20.c"
         "assistant/onewire.c"
-        "assistant/i2cdev.c"
+        "assistant/i2cdev_legacy.c"
         "tasks/application/application.c"
         "tasks/resistance/resistance.c"
 
