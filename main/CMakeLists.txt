@@ -2,14 +2,23 @@ idf_component_register(
     SRCS
         "main.c"
         "hardware/files/fs_manager.c"
+        "hardware/humidity/humidity.c"
+        "hardware/humidity/aht.c"
         "hardware/temperature/temperature.c"
         "hardware/temperature/ds18x20.c"
-        "library/onewire.c"
+        "assistant/onewire.c"
+        "assistant/i2cdev.c"
+        "tasks/application/application.c"
+        "tasks/resistance/resistance.c"
 
     INCLUDE_DIRS
         "."
         "hardware"
-        "hardware/temperature"
         "hardware/files"
-        "library"
+        "hardware/humidity"
+        "hardware/temperature"
+        "assistant"
+        "tasks"
+        "tasks/application"
+        "tasks/resistance"
 )
