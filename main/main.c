@@ -22,24 +22,30 @@ void app_main()
 	}
 
 	res = temperature_init();
+	if(res!=ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init tempeture");
 		return;
 	}
 
+	ESP_LOGI(TAG,"Temperature: %.2f", temperature_get(1));
+
 	res = humidity_init();
+	if (res != ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init humidity");
 		return;
 	}
 
 	res = humidifier_init();
+	if (res != ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init humidifier");
 		return;
 	}
 
 	res = resistance_init();
+	if (res != ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init resistance");
 		return;
