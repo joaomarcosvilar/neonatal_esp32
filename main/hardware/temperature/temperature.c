@@ -2,7 +2,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-#include <inttypes.h>
+#include "string.h"
+#include "inttypes.h"
 #include "driver/gpio.h"
 #include "assistant/onewire.h"
 
@@ -24,8 +25,6 @@ void temperature_address_print(void)
 
 esp_err_t temperature_init(void)
 {
-    gpio_set_pull_mode(TEMPERATURE_GPIO, GPIO_PULLUP_ONLY);
-
     esp_err_t res = fs_search(ROOT_STORAGE_PATH, TEMPERATURE_FILE);
     if (res == ESP_ERR_NOT_FOUND)
     {
@@ -42,18 +41,31 @@ esp_err_t temperature_init(void)
     {
         ESP_LOGE(TAG, "Failed get sensor address (E: %s)", esp_err_to_name(res));
     }
-    // TODO: atualizar quantidade de sensores armazenados
+    
+    temperature_scan();
 
     return res;
 }
 
 esp_err_t temperature_scan(void)
 {
-    esp_err_t res = ds18x20_scan_devices(TEMPERATURE_GPIO, &g_temperature_sensors_addr, TEMPERATURE_MAX_SENSOR_COUNT, g_temperature_sensor_count);
+    onewire_addr_t addrs_current[TEMPERATURE_MAX_SENSOR_COUNT];
+    uint32_t count_current = 0;
+
+    esp_err_t res = ds18x20_scan_devices(TEMPERATURE_GPIO,
+                                         addrs_current,
+                                         TEMPERATURE_MAX_SENSOR_COUNT,
+                                         &count_current);
     if (res != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to scan address sensor (E: %s)", esp_err_to_name(res));
         return res;
+    }
+
+    if (count_current != g_temperature_sensor_count)
+    {
+        memcpy(g_temperature_sensors_addr, addrs_current, sizeof(addrs_current));
+        g_temperature_sensor_count = count_current;
     }
 
     if (!g_temperature_sensor_count)
@@ -62,19 +74,30 @@ esp_err_t temperature_scan(void)
         return ESP_ERR_NOT_FOUND;
     }
 
-    res = fs_write(TEMPERATURE_FULL_PATH, 0, sizeof(g_temperature_sensors_addr), (uint8_t *)g_temperature_sensors_addr, SPIFFS_NW_W);
+    res = fs_write(TEMPERATURE_FULL_PATH,
+                   0,
+                   sizeof(g_temperature_sensors_addr),
+                   (uint8_t *)g_temperature_sensors_addr,
+                   SPIFFS_NW_W);
     if (res != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to create file (E: %s)", esp_err_to_name(res));
     }
 
+    temperature_address_print();
     return ESP_OK;
 }
 
 float temperature_get(uint8_t addr)
 {
+    if (addr > g_temperature_sensor_count || addr == 0)
+    {
+        ESP_LOGE(TAG, "Invalid sensor index: %u", addr);
+        return 0.0;
+    }
+
     float temp = 0.0;
-    esp_err_t res = ds18x20_measure_and_read(TEMPERATURE_GPIO, g_temperature_sensors_addr[addr], &temp);
+    esp_err_t res = ds18x20_measure_and_read(TEMPERATURE_GPIO, g_temperature_sensors_addr[addr - 1], &temp);
     if (res != ESP_OK)
     {
         ESP_LOGE(TAG, "Sensors read error (E: %s)", esp_err_to_name(res));

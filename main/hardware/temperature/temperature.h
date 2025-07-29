@@ -1,7 +1,7 @@
 #ifndef TEMPERATURE_H
 #define TEMPERATURE_H
 
-#define TEMPERATURE_GPIO GPIO_NUM_5
+#define TEMPERATURE_GPIO GPIO_NUM_4
 
 #define TEMPERATURE_FILE "tempeature.dat"
 #define TEMPERATURE_FULL_PATH "/storage/tempeature.dat"
