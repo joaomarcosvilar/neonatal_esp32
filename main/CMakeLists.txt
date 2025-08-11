@@ -9,6 +9,7 @@ idf_component_register(
         "assistant/onewire.c"
         "assistant/i2cdev_legacy.c"
         "tasks/application/application.c"
+        "tasks/espnow_manager/espnow_manager.c"
         "tasks/humidifier/humidifier.c"
         "tasks/resistance/resistance.c"
 
@@ -21,6 +22,7 @@ idf_component_register(
         "assistant"
         "tasks"
         "tasks/application"
+        "tasks/espnow_manager"
         "tasks/humidifier"
         "tasks/resistance"
 )

@@ -19,8 +19,8 @@ static size_t g_temperature_sensor_count = 0;
 void temperature_address_print(void)
 {
     for (int i = 0; i < g_temperature_sensor_count; i++)
-        ESP_LOGI(TAG, "Sensor %08" PRIx32 "%08" PRIx32,
-                 (uint32_t)(g_temperature_sensors_addr[i] >> 32), (uint32_t)g_temperature_sensors_addr[i]);
+        ESP_LOGI(TAG, "Sensor %08" PRIx32 "%08" PRIx32 "(%d)",
+                 (uint32_t)(g_temperature_sensors_addr[i] >> 32), (uint32_t)g_temperature_sensors_addr[i], i + 1);
 }
 
 esp_err_t temperature_init(void)
@@ -41,7 +41,7 @@ esp_err_t temperature_init(void)
     {
         ESP_LOGE(TAG, "Failed get sensor address (E: %s)", esp_err_to_name(res));
     }
-    
+
     temperature_scan();
 
     return res;
@@ -105,4 +105,29 @@ float temperature_get(uint8_t addr)
     }
 
     return temp;
+}
+
+esp_err_t temperature_get_all(float *data)
+{
+    if (data == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    float temps[TEMPERATURE_MAX_SENSOR_COUNT] = {0};
+
+    esp_err_t ret = ds18x20_measure_and_read_multi(
+        TEMPERATURE_GPIO,
+        g_temperature_sensors_addr,
+        g_temperature_sensor_count,
+        temps
+    );
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read sensors (E: %s)", esp_err_to_name(ret));
+        return ret;
+    }
+
+    memcpy(data, temps, sizeof(float) * g_temperature_sensor_count);
+
+    return ESP_OK;
 }

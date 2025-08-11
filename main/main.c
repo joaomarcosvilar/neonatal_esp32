@@ -2,9 +2,12 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "comon.h"
 #include "hardware/files/fs_manager.h"
 #include "hardware/temperature/temperature.h"
 #include "hardware/humidity/humidity.h"
+#include "tasks/application/application.h"
+#include "tasks/espnow_manager/espnow_manager.h"
 #include "tasks/humidifier/humidifier.h"
 #include "tasks/resistance/resistance.h"
 
@@ -22,13 +25,13 @@ void app_main()
 	}
 
 	res = temperature_init();
-	if(res!=ESP_OK)
+	if (res != ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init tempeture");
 		return;
 	}
 
-	ESP_LOGI(TAG,"Temperature: %.2f", temperature_get(1));
+	ESP_LOGI(TAG, "Temperature: %.2f", temperature_get(1));
 
 	res = humidity_init();
 	if (res != ESP_OK)
@@ -36,6 +39,8 @@ void app_main()
 		ESP_LOGE(TAG, "Failed to init humidity");
 		return;
 	}
+	ESP_LOGI(TAG, "Humidity: %.2f", humidity_get());
+
 
 	res = humidifier_init();
 	if (res != ESP_OK)
@@ -48,6 +53,20 @@ void app_main()
 	if (res != ESP_OK)
 	{
 		ESP_LOGE(TAG, "Failed to init resistance");
+		return;
+	}
+
+	res = espnow_manager_init();
+	if (res != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Failed to init espnow");
+		return;
+	}
+
+	res = application_init();
+	if (res != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Failed to init aplication");
 		return;
 	}
 }
