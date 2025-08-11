@@ -23,7 +23,6 @@
 #define APP_TASK_STACK_SIZE 1024 * 4
 #define APP_TASK_PRIOR 2
 
-#define APP_SEMAPHORE_TIMEOUT_TICKS 5000
 #define APP_QUEUE_LEN 10
 
 #define APP_TIMER_NAME "timer send"
@@ -54,7 +53,6 @@ void app_task(void *args)
         event = xEventGroupWaitBits(app_event, APP_EVENT_SEND | APP_EVENT_RECEIVED, pdTRUE, pdFALSE, pdMS_TO_TICKS(100));
         if (event & APP_EVENT_SEND)
         {
-            ESP_LOGI(TAG, "APP_EVENT_SEND");
             ret = temperature_get_all(&sensor.temp);
             if (ret != ESP_OK)
             {

@@ -1,5 +1,5 @@
-#ifndef ESPNOW_manager_H
-#define ESPNOW_manager_H
+#ifndef ESPNOW_MANEGER_H
+#define ESPNOW_MANEGER_H
 
 #define ESPNOW_CHANNEL 1
 
