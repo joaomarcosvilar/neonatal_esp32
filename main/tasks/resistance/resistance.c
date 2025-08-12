@@ -2,79 +2,115 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-#include "rom/ets_sys.h"
 #include "driver/gpio.h"
 #include "esp_timer.h"
+#include "rom/ets_sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
 
 #include "resistance\resistance.h"
 
-#define RESISTANCE_TASK_NAME "resistance"
-#define RESISTANCE_TASK_STACK_SIZE 1024 * 1
-#define RESISTANCE_TASK_PRIOR 2
-
-#define ESP_INTR_FLAG_DEFAULT 0
-
 #define TAG "RESISTANCE"
+#define ESP_INTR_FLAG_DEFAULT 0
+#define TIMER_NAME "resistance_timer_shoot"
 
-static TaskHandle_t resistance_task_handle;
-static SemaphoreHandle_t resistance_semaphore;
+static portMUX_TYPE resistance_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static esp_timer_handle_t resistance_timer;
+
+volatile uint64_t last_zc_time_us = 0;
+volatile uint64_t last_zc_period_us = 8.3 * 1000;
+
 static uint16_t g_resistance_percent = 0;
+static uint64_t resistance_timer_period = 0;
+static bool intr_active = true;
 
-volatile int64_t g_resistance_last_zc_time = 0;
-volatile int64_t g_resistance_last_semicycle_us = 0;
-
-void IRAM_ATTR resistance_isr_handle(void *args)
-{
-    int64_t now = esp_timer_get_time();
-    g_resistance_last_semicycle_us = now - g_resistance_last_zc_time;
-    g_resistance_last_zc_time = now;
-
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    vTaskNotifyGiveFromISR(resistance_task_handle, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR();
-}
-
-void resistance_pulse_triac(void)
+void IRAM_ATTR resistance_pulse_triac(void)
 {
     gpio_set_level(RESISTANCE_TRIAC_GPIO, 1);
     ets_delay_us(RESISTANCE_DELAY_TRIAC_CLOSE);
     gpio_set_level(RESISTANCE_TRIAC_GPIO, 0);
 }
 
-void resistance_task(void *args)
+static void resistance_timer_cb(void *args)
 {
-    uint32_t delay = 0;
-    uint16_t percent = 0;
+    resistance_pulse_triac();
+}
 
-    while (true)
+void IRAM_ATTR resistance_isr_handle(void *args)
+{
+    int64_t now = esp_timer_get_time();
+
+    if (last_zc_time_us != 0)
     {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        last_zc_period_us = now - last_zc_time_us;
+    }
+    last_zc_time_us = now;
 
-        if (xSemaphoreTake(resistance_semaphore, pdMS_TO_TICKS(2)) == pdTRUE)
+    uint64_t delay;
+
+    portENTER_CRITICAL_ISR(&resistance_spinlock);
+    delay = resistance_timer_period;
+    portEXIT_CRITICAL_ISR(&resistance_spinlock);
+
+    if (delay == 0)
+    {
+        resistance_pulse_triac();
+    }
+    else if (delay < last_zc_period_us)
+    {
+        esp_timer_start_once(resistance_timer, delay);
+    }
+}
+
+esp_err_t resistance_set(uint16_t percent)
+{
+    if (percent > 100)
+        percent = 100;
+
+    portENTER_CRITICAL(&resistance_spinlock);
+
+    g_resistance_percent = percent;
+
+    if (percent == 100)
+    {
+        resistance_timer_period = 0;
+        gpio_set_level(RESISTANCE_TRIAC_GPIO, 1);
+        if (intr_active)
         {
-            percent = g_resistance_percent;
-            xSemaphoreGive(resistance_semaphore);
-
-            delay = (uint32_t)((100 - percent) * g_resistance_last_semicycle_us) / 100; // us
-
-            if (delay)
-            {
-                ets_delay_us(delay);
-                resistance_pulse_triac();
-            }
+            gpio_intr_disable(RESISTANCE_ZC_GPIO);
+            intr_active = false;
         }
     }
+    else if (percent == 0)
+    {
+        // resistance_timer_period = last_zc_period_us + 1000;
+        gpio_set_level(RESISTANCE_TRIAC_GPIO, 0);
+        if (intr_active)
+        {
+            gpio_intr_disable(RESISTANCE_ZC_GPIO);
+            intr_active = false;
+        }
+    }
+    else
+    {
+        if (!intr_active)
+        {
+            gpio_intr_enable(RESISTANCE_ZC_GPIO);
+            intr_active = true;
+        }
+
+        resistance_timer_period = (last_zc_period_us * (100 - percent)) / 100;
+    }
+
+    portEXIT_CRITICAL(&resistance_spinlock);
+
+    return ESP_OK;
 }
 
 esp_err_t resistance_init(void)
 {
     gpio_config_t zc_conf = {};
     zc_conf.intr_type = GPIO_INTR_POSEDGE;
-
     zc_conf.pin_bit_mask = 1ULL << RESISTANCE_ZC_GPIO;
     zc_conf.mode = GPIO_MODE_INPUT;
     zc_conf.pull_up_en = 1;
@@ -91,38 +127,26 @@ esp_err_t resistance_init(void)
         .pull_down_en = 0,
         .pull_up_en = 0,
     };
-
     gpio_config(&triac_conf);
     gpio_set_level(RESISTANCE_TRIAC_GPIO, 0);
 
-    resistance_semaphore = xSemaphoreCreateMutex();
-    if (resistance_semaphore == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to create semaphore");
-        return ESP_FAIL;
-    }
+    const esp_timer_create_args_t resistance_timer_args = {
+        .callback = &resistance_timer_cb,
+        .name = TIMER_NAME,
+        .arg = NULL,
+        .dispatch_method = ESP_TIMER_TASK,
+        .skip_unhandled_events = true,
+    };
 
-    BaseType_t xRet = xTaskCreate(resistance_task, RESISTANCE_TASK_NAME, RESISTANCE_TASK_STACK_SIZE, NULL, RESISTANCE_TASK_PRIOR, &resistance_task_handle);
-    if (xRet != pdTRUE)
+    esp_err_t ret = esp_timer_create(&resistance_timer_args, &resistance_timer);
+    if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to create task (E: %d)", xRet);
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "Failed to create timer");
+        return ret;
     }
+    gpio_intr_enable(RESISTANCE_ZC_GPIO);
+
+    resistance_set(0);
 
     return ESP_OK;
-}
-
-esp_err_t resistance_set(uint16_t percent)
-{
-    if (percent > 100)
-        percent = 100;
-
-    if (xSemaphoreTake(resistance_semaphore, pdMS_TO_TICKS(RESISTANCE_DELAY_SEMAPHORE_TIMEOUT)) == pdTRUE)
-    {
-        g_resistance_percent = percent;
-        xSemaphoreGive(resistance_semaphore);
-        return ESP_OK;
-    }
-
-    return ESP_FAIL;
 }
