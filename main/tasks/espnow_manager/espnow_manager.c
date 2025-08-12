@@ -18,6 +18,7 @@
 #include "espnow_manager.h"
 #include "files/fs_manager.h"
 #include "tasks/application/application.h"
+#include "tasks/alert/alert.h"
 #include "comon.h"
 
 #define TAG "ESPNOW"
@@ -80,12 +81,15 @@ void espnow_manager_send_cb(const uint8_t *mac_addr, esp_now_send_status_t statu
     //        mac_addr[0], mac_addr[1], mac_addr[2],
     //        mac_addr[3], mac_addr[4], mac_addr[5],
     //        status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
-    ;
+    if (status)
+    {
+        alert_set(ALERT_ESPNOW_SEND_FAIL);
+    }
 }
 
 void espnow_manager_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len)
 {
-    uint8_t *mac = recv_info->src_addr;
+    // uint8_t *mac = recv_info->src_addr;
     // printf("Received from MAC %02X:%02X:%02X:%02X:%02X:%02X: %.*s\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], len, (char *)data);
 
     espnow_queue_t item = {0};
@@ -221,13 +225,10 @@ esp_err_t espnow_manager_init(void)
         res = fs_search(ROOT_STORAGE_PATH, ESPNOW_FILE);
         if (res != ESP_ERR_NOT_FOUND)
         {
-            printf("Mac address not found. Please, write a address MAC (AA:BB:CC:DD:EE:FF):");
+            printf("Mac address not found.");
             // TODO: stop initialization and wait cmd
-            // res = espnow_manager_read_serial();
-            // if (res != ESP_OK)
-            // {
-            //     return res;
-            // }
+            alert_set(ALERT_INIT_FAIL);
+            return ESP_FAIL;
         }
         else if (res != ESP_OK)
         {
@@ -300,7 +301,6 @@ esp_err_t espnow_manager_send(uint8_t *data, uint32_t len)
     if (xQueueSend(espnow_queue, &buffer, 0) != pdPASS)
     {
         ESP_LOGE(TAG, "Failed to send to queue");
-        free(buf_copy); // liberar se falhar
         return ESP_FAIL;
     }
 

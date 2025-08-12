@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "temperature.h": "c"
+        "temperature.h": "c",
+        "led_strip.h": "c"
     }
 }
