@@ -27,9 +27,9 @@
 
 #define ALERT_MAX 5
 
-#define LED_MAX_BRIGHTNESS 10
+#define LED_MAX_BRIGHTNESS 255
 
-#define ALERT_KEEP_ALIVE_TIME_US 30 * 1000 * 1000
+#define ALERT_KEEP_ALIVE_TIME_US 10 * 1000 * 1000
 
 static TaskHandle_t alert_task_handle = NULL;
 static EventGroupHandle_t alert_event_group;

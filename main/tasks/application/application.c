@@ -64,7 +64,7 @@ void app_task(void *args)
 
         if (xQueueReceive(app_queue, &actuator, pdMS_TO_TICKS(100)) == pdPASS)
         {
-            ESP_LOGI(TAG, "Received:\n perc_res=%d\npwm_hum=%d", actuator.perc_res, actuator.pwm_hum);
+            ESP_LOGI(TAG, "Received:\n perc_res=%d\n pwm_hum=%d", actuator.perc_res, actuator.pwm_hum);
             ret = resistance_set(actuator.perc_res);
             if (ret != ESP_OK)
             {
