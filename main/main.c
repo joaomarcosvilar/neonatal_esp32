@@ -41,8 +41,6 @@ void app_main()
 		return;
 	}
 
-	ESP_LOGI(TAG, "Temperature: %.2f", temperature_get(1));
-
 	res = humidity_init();
 	if (res != ESP_OK)
 	{
@@ -50,7 +48,6 @@ void app_main()
 		alert_set(ALERT_INIT_FAIL);
 		return;
 	}
-	ESP_LOGI(TAG, "Humidity: %.2f", humidity_get());
 
 	res = humidifier_init();
 	if (res != ESP_OK)

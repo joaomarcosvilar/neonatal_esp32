@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "driver/gpio.h"
 #include "led_strip.h"
+#include "esp_timer.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,9 +23,13 @@
 #define ALERT_BIT_ESPNOW_FAIL (1 << 1)
 #define ALERT_BIT_INIT_FAIL (1 << 2)
 #define ALERT_BIT_FINISH (1 << 3)
+#define ALERT_BIT_KEEP_ALIVE (1 << 4)
 
-#define ALERT_MAX 4
+#define ALERT_MAX 5
+
 #define LED_MAX_BRIGHTNESS 10
+
+#define ALERT_KEEP_ALIVE_TIME_US 30 * 1000 * 1000
 
 static TaskHandle_t alert_task_handle = NULL;
 static EventGroupHandle_t alert_event_group;
@@ -43,6 +48,7 @@ static const alert_cfg_t alert_cfgs[] = {
     [ALERT_ESPNOW_SEND_FAIL] = {LED_MAX_BRIGHTNESS, 0, 0, 200, 200, 2},              // Vermelho rápido
     [ALERT_INIT_FAIL] = {LED_MAX_BRIGHTNESS, LED_MAX_BRIGHTNESS, 0, 500, 500, 1000}, // Amarelo médio
     [ALERT_FINISH] = {0, LED_MAX_BRIGHTNESS, 0, 1000, 1000, 1},                      // Verde lento
+    [ALERT_KEEP_ALIVE] = {0, 0, LED_MAX_BRIGHTNESS, 1000, 1000, 2}                   // Azul lento
 };
 
 static const EventBits_t alert_bits_map[] = {
@@ -50,6 +56,7 @@ static const EventBits_t alert_bits_map[] = {
     [ALERT_ESPNOW_SEND_FAIL] = ALERT_BIT_ESPNOW_FAIL,
     [ALERT_INIT_FAIL] = ALERT_BIT_INIT_FAIL,
     [ALERT_FINISH] = ALERT_BIT_FINISH,
+    [ALERT_KEEP_ALIVE] = ALERT_BIT_KEEP_ALIVE
 };
 
 static void alert_off(void)
@@ -59,13 +66,14 @@ static void alert_off(void)
 
 static void alert_task(void *arg)
 {
+    uint32_t current_time = esp_timer_get_time();
     while (1)
     {
         EventBits_t bits = xEventGroupWaitBits(alert_event_group,
-                                               ALERT_BIT_CLEAN | ALERT_BIT_ESPNOW_FAIL | ALERT_BIT_INIT_FAIL | ALERT_BIT_FINISH,
-                                               pdTRUE, 
+                                               ALERT_BIT_CLEAN | ALERT_BIT_ESPNOW_FAIL | ALERT_BIT_INIT_FAIL | ALERT_BIT_FINISH | ALERT_BIT_KEEP_ALIVE,
+                                               pdTRUE,
                                                pdFALSE,
-                                               portMAX_DELAY);
+                                               pdMS_TO_TICKS(100));
 
         for (int i = 0; i < ALERT_MAX; i++)
         {
@@ -81,6 +89,12 @@ static void alert_task(void *arg)
                     vTaskDelay(pdMS_TO_TICKS(cfg.off_ms));
                 }
             }
+        }
+
+        if (esp_timer_get_time() - current_time >= ALERT_KEEP_ALIVE_TIME_US)
+        {
+            current_time = esp_timer_get_time();
+            xEventGroupSetBits(alert_event_group, ALERT_BIT_KEEP_ALIVE);
         }
     }
 }

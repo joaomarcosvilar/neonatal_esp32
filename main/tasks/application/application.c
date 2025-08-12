@@ -104,7 +104,6 @@ esp_err_t application_init(void)
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "Aplication init");
     return ESP_OK;
 }
 
