@@ -47,7 +47,7 @@ esp_err_t humidifier_set(uint16_t percent)
     if (percent > 100)
         percent = 100;
 
-    uint32_t duty = (uint32_t)((2 ^ LEDC_DUTY_RES) * percent / 100.0f);
+    uint32_t duty = (uint32_t)((1 << LEDC_DUTY_RES) * percent / 100.0f);
 
     esp_err_t res = ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty);
     if (res != ESP_OK)
