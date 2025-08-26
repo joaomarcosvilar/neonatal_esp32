@@ -56,8 +56,7 @@ static const EventBits_t alert_bits_map[] = {
     [ALERT_ESPNOW_SEND_FAIL] = ALERT_BIT_ESPNOW_FAIL,
     [ALERT_INIT_FAIL] = ALERT_BIT_INIT_FAIL,
     [ALERT_FINISH] = ALERT_BIT_FINISH,
-    [ALERT_KEEP_ALIVE] = ALERT_BIT_KEEP_ALIVE
-};
+    [ALERT_KEEP_ALIVE] = ALERT_BIT_KEEP_ALIVE};
 
 static void alert_off(void)
 {
@@ -129,12 +128,13 @@ esp_err_t alert_init(void)
         return ESP_FAIL;
     }
 
-    BaseType_t xRet = xTaskCreate(alert_task,
-                                  ALERT_TASK_NAME,
-                                  ALERT_TASK_STACK_SIZE,
-                                  NULL,
-                                  ALERT_TASK_PRIOR,
-                                  &alert_task_handle);
+    BaseType_t xRet = xTaskCreatePinnedToCore(alert_task,
+                            ALERT_TASK_NAME,
+                            ALERT_TASK_STACK_SIZE,
+                            NULL,
+                            ALERT_TASK_PRIOR,
+                            &alert_task_handle,
+                            0); // força rodar no Core 0
 
     if (xRet != pdPASS)
     {

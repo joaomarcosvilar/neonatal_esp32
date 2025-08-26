@@ -107,7 +107,7 @@ void espnow_task(void *args)
     app_data_actuator_t actuator = {0};
     for (;;)
     {
-        if (xQueueReceive(espnow_queue, &buffer, pdMS_TO_TICKS(100)) == pdPASS)
+        if (xQueueReceive(espnow_queue, &buffer, pdMS_TO_TICKS(10)) == pdPASS)
         {
             if (buffer.routine == ESPNOW_ROUTINE_SEND)
             {

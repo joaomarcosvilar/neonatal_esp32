@@ -19,20 +19,24 @@
 
 #define TAG "APP"
 
-#define APP_TASK_NAME "app task"
-#define APP_TASK_STACK_SIZE 1024 * 5
-#define APP_TASK_PRIOR 2
+#define APP_TASK_SEND_NAME "app send task"
+#define APP_TASK_SEND_STACK_SIZE 1024 * 3
+#define APP_TASK_SEND_PRIOR 1
 
-#define APP_TIME_SEND_US 1 * 1000 * 100
+#define APP_TASK_RECEIVED_NAME "app receive task"
+#define APP_TASK_RECEIVED_STACK_SIZE 1024 * 3
+#define APP_TASK_RECEIVED_PRIOR 2
+
+#define APP_TIME_SEND_US 10
 
 #define APP_QUEUE_LEN 10
 
 static QueueHandle_t app_queue;
-static TaskHandle_t app_task_handle;
+// static TaskHandle_t app_task_handle;
 
-void app_task(void *args)
+void app_send_task(void *args)
 {
-    app_data_actuator_t actuator = {0};
+
     app_data_sensors_t sensor = {0};
     esp_err_t ret = ESP_OK;
     uint32_t timer_current = esp_timer_get_time();
@@ -40,19 +44,12 @@ void app_task(void *args)
     {
         if (esp_timer_get_time() - timer_current >= APP_TIME_SEND_US)
         {
-            ret = temperature_get_all(&sensor.temp);
-            if (ret != ESP_OK)
-            {
-                ESP_LOGE(TAG, "Failed to get temperatures value");
-            }
-
+            sensor.temp[0] = temperature_get(1);
             // for (uint8_t i = 0; i < TEMPERATURE_MAX_SENSOR_COUNT; i++)
             // {
-            //     ESP_LOGI(TAG, "temp sensor [%d]: %.2f", i, sensor.temp[i]);
+            //     ESP_LOGI(TAG, "temp sensor [%d]: %.2f", 0, sensor.temp[0]);
             // }
-
             sensor.hum = humidity_get();
-            // ESP_LOGI(TAG, "hum sensor: %.2f", sensor.hum);
 
             ret = espnow_manager_send((uint8_t *)&sensor, sizeof(app_data_sensors_t));
             if (ret != ESP_OK)
@@ -61,10 +58,18 @@ void app_task(void *args)
             }
             timer_current = esp_timer_get_time();
         }
+    }
+}
 
-        if (xQueueReceive(app_queue, &actuator, pdMS_TO_TICKS(100)) == pdPASS)
+void app_received_task(void *args)
+{
+    app_data_actuator_t actuator = {0};
+    esp_err_t ret;
+    for (;;)
+    {
+        if (xQueueReceive(app_queue, &actuator, pdMS_TO_TICKS(10)) == pdPASS)
         {
-            ESP_LOGI(TAG, "Received:\n perc_res=%d\n pwm_hum=%d", actuator.perc_res, actuator.pwm_hum);
+            // ESP_LOGI(TAG, "Received:\n perc_res=%d\n pwm_hum=%d", actuator.perc_res, actuator.pwm_hum);
             ret = resistance_set(actuator.perc_res);
             if (ret != ESP_OK)
             {
@@ -76,9 +81,8 @@ void app_task(void *args)
             {
                 ESP_LOGE(TAG, "Failed to set percentage pwm humidifier (E: %s)", esp_err_to_name(ret));
             }
-            alert_set(ALERT_FINISH);
+            // alert_set(ALERT_FINISH);
         }
-
     }
 }
 
@@ -92,12 +96,25 @@ esp_err_t application_init(void)
     }
 
     BaseType_t xRet = xTaskCreate(
-        app_task,
-        APP_TASK_NAME,
-        APP_TASK_STACK_SIZE,
+        app_send_task,
+        APP_TASK_SEND_NAME,
+        APP_TASK_SEND_STACK_SIZE,
         NULL,
-        APP_TASK_PRIOR,
-        &app_task_handle);
+        APP_TASK_SEND_PRIOR,
+        NULL);
+    if (xRet != pdTRUE)
+    {
+        ESP_LOGE(TAG, "Failed to create task");
+        return ESP_FAIL;
+    }
+
+    xRet = xTaskCreate(
+        app_received_task,
+        APP_TASK_RECEIVED_NAME,
+        APP_TASK_RECEIVED_STACK_SIZE,
+        NULL,
+        APP_TASK_RECEIVED_PRIOR,
+        NULL);
     if (xRet != pdTRUE)
     {
         ESP_LOGE(TAG, "Failed to create task");
