@@ -83,7 +83,8 @@ void espnow_manager_send_cb(const uint8_t *mac_addr, esp_now_send_status_t statu
     //        status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
     if (status)
     {
-        alert_set(ALERT_ESPNOW_SEND_FAIL);
+        // alert_set(ALERT_ESPNOW_SEND_FAIL);
+        ;
     }
 }
 

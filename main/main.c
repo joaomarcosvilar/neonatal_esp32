@@ -18,12 +18,12 @@ void app_main()
 {
 	esp_err_t res = ESP_OK;
 
-	res = alert_init();
-	if (res != ESP_OK)
-	{
-		ESP_LOGE(TAG, "Failed to init alert");
-		return;
-	}
+	// res = alert_init();
+	// if (res != ESP_OK)
+	// {
+	// 	ESP_LOGE(TAG, "Failed to init alert");
+	// 	return;
+	// }
 
 	res = fs_init();
 	if (res != ESP_OK)

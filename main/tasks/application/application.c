@@ -40,7 +40,7 @@ void app_send_task(void *args)
     app_data_sensors_t sensor = {0};
     esp_err_t ret = ESP_OK;
     uint32_t timer_current = esp_timer_get_time();
-    for (;;)
+    while (true)
     {
         if (esp_timer_get_time() - timer_current >= APP_TIME_SEND_US)
         {
@@ -58,6 +58,8 @@ void app_send_task(void *args)
             }
             timer_current = esp_timer_get_time();
         }
+
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
