@@ -32,8 +32,14 @@
 #define ESPNOW_SEMAPHORE_TIMEOUT_TICKS 5 * 1000
 
 // 64:E8:33:BB:30:94
+// static uint8_t g_espnow_manager_peer_mac[6] = {0x64, 0xE8, 0x33, 0xBB, 0x30, 0x94};
 
-static uint8_t g_espnow_manager_peer_mac[6] = {0x64, 0xE8, 0x33, 0xBB, 0x30, 0x94};
+//EC:DA:3B:C0:44:CC
+// static uint8_t g_espnow_manager_peer_mac[6] = {0xEC, 0xDA, 0x3B, 0xC0, 0x44, 0xCC};
+
+//broadcast
+static uint8_t g_espnow_manager_peer_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
 static QueueHandle_t espnow_queue;
 static TaskHandle_t espnow_task_handle;
 SemaphoreHandle_t espnow_sempr;
