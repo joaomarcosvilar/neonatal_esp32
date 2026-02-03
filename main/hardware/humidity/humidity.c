@@ -1,10 +1,7 @@
-#include "stdio.h"
-#include "esp_err.h"
-#include "esp_log.h"
-
 #include "assistant/i2cdev.h"
 #include "aht.h"
 #include "humidity.h"
+#include "comon.h"
 
 #define TAG "HUMIDITY"
 
@@ -19,6 +16,7 @@ esp_err_t humidity_init(void)
         return res;
     }
 
+#ifndef TEST_NO_SENSORS
     g_humidity_dev.mode = AHT_MODE_NORMAL;
     g_humidity_dev.type = AHT_TYPE_AHT1x;
 
@@ -47,6 +45,7 @@ esp_err_t humidity_init(void)
     {
         ESP_LOGW(TAG, "Device not calibrated");
     }
+#endif
 
     return ESP_OK;
 }
@@ -54,11 +53,17 @@ esp_err_t humidity_init(void)
 float humidity_get(void)
 {
     float humidity = 0.0;
+
+#ifndef TEST_NO_SENSORS
     esp_err_t res = aht_get_data(&g_humidity_dev, NULL, &humidity);
     if (res != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to get humidity (E: %s)", esp_err_to_name(res));
         return 0.0;
     }
+#else 
+    uint32_t raw = esp_random();
+    humidity = (raw % (100 - 70 + 1)) + 70;
+#endif
     return humidity;
 }

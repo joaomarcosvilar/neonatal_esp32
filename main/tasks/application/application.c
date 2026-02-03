@@ -1,13 +1,10 @@
-#include "stdio.h"
-#include "esp_err.h"
-#include "esp_log.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "esp_timer.h"
 
+#include "comon.h"
 #include "application.h"
 #include "espnow_manager/espnow_manager.h"
 #include "hardware/files/fs_manager.h"

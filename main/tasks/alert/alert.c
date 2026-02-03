@@ -15,7 +15,7 @@
 
 #define ALERT_TASK_NAME "alert task"
 #define ALERT_TASK_STACK_SIZE (1024 * 2)
-#define ALERT_TASK_PRIOR 3
+#define ALERT_TASK_PRIOR 6
 
 #define ALERT_LED_MAX 1
 

@@ -1,12 +1,9 @@
-#include "stdio.h"
-#include "esp_err.h"
-#include "esp_log.h"
-
 #include "string.h"
 #include "inttypes.h"
 #include "driver/gpio.h"
 #include "assistant/onewire.h"
 
+#include "comon.h"
 #include "ds18x20.h"
 #include "hardware/files/fs_manager.h"
 #include "temperature.h"
@@ -26,23 +23,26 @@ void temperature_address_print(void)
 esp_err_t temperature_init(void)
 {
     esp_err_t res = fs_search(ROOT_STORAGE_PATH, TEMPERATURE_FILE);
-    if (res == ESP_ERR_NOT_FOUND)
-    {
-        temperature_scan();
-    }
-    else if (res != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to get addrs in file (E: %s)", esp_err_to_name(res));
-        return res;
-    }
 
-    res = fs_read(TEMPERATURE_FULL_PATH, 0, sizeof(g_temperature_sensors_addr), (uint8_t *)g_temperature_sensors_addr);
-    if (res != ESP_OK)
+#ifndef TEST_NO_SENSORS
+    g_temperature_sensor_count = TEMPERATURE_MAX_SENSOR_COUNT;
+    if(res == ESP_ERR_NOT_FOUND)
     {
-        ESP_LOGE(TAG, "Failed get sensor address (E: %s)", esp_err_to_name(res));
+        // TODO: rotina de conexão individual para salvar os endereços
+        return ESP_OK;
     }
+    else if(res == ESP_OK)
+    {
+        res = fs_read(TEMPERATURE_FULL_PATH, 0, sizeof(g_temperature_sensors_addr), (uint8_t *)g_temperature_sensors_addr);
+    }
+    else if(res != ESP_OK)
+    {
+        ESP_LOGE(TAG,"Failed to init temperature sensors (E: %s)", esp_err_to_name(res));
+    }
+#else
+    res = ESP_OK;
+#endif
 
-    temperature_scan();
 
     return res;
 }
@@ -90,19 +90,26 @@ esp_err_t temperature_scan(void)
 
 float temperature_get(uint8_t addr)
 {
+    float temp = 0.0;
+    
+#ifdef TEST_NO_SENSORS
+    uint32_t raw = esp_random();
+    
+    temp = (raw % (30 - 25 + 1)) + 25;
+    
+#else
     if (addr > g_temperature_sensor_count || addr == 0)
     {
         ESP_LOGE(TAG, "Invalid sensor index: %u", addr);
         return 0.0;
     }
-
-    float temp = 0.0;
     esp_err_t res = ds18x20_measure_and_read(TEMPERATURE_GPIO, g_temperature_sensors_addr[addr - 1], &temp);
     if (res != ESP_OK)
     {
         ESP_LOGE(TAG, "Sensors read error (E: %s)", esp_err_to_name(res));
         return 0.0;
     }
+#endif
 
     return temp;
 }
@@ -115,17 +122,25 @@ esp_err_t temperature_get_all(float *data)
 
     float temps[TEMPERATURE_MAX_SENSOR_COUNT] = {0};
 
+#ifdef TEST_NO_SENSORS
+    for(int i = 0; i < TEMPERATURE_MAX_SENSOR_COUNT; i++)
+    {
+        uint32_t raw = esp_random();
+        temps[i] = (raw % (30 - 25 + 1)) + 25;
+    }
+#else
     esp_err_t ret = ds18x20_measure_and_read_multi(
         TEMPERATURE_GPIO,
         g_temperature_sensors_addr,
         g_temperature_sensor_count,
         temps
     );
-
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read sensors (E: %s)", esp_err_to_name(ret));
         return ret;
     }
+
+#endif
 
     memcpy(data, temps, sizeof(float) * g_temperature_sensor_count);
 

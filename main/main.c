@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include "esp_err.h"
-#include "esp_log.h"
-
 #include "comon.h"
 #include "hardware/files/fs_manager.h"
 #include "hardware/temperature/temperature.h"
@@ -18,12 +14,12 @@ void app_main()
 {
 	esp_err_t res = ESP_OK;
 
-	// res = alert_init();
-	// if (res != ESP_OK)
-	// {
-	// 	ESP_LOGE(TAG, "Failed to init alert");
-	// 	return;
-	// }
+	res = alert_init();
+	if (res != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Failed to init alert");
+		return;
+	}
 
 	res = fs_init();
 	if (res != ESP_OK)
