@@ -20,6 +20,6 @@ typedef struct
     float hum;
 } app_data_sensors_t;
 
-#define TEST_NO_SENSORS     1
+// #define TEST_NO_SENSORS     1
 
 #endif
