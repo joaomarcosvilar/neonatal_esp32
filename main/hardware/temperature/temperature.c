@@ -128,6 +128,7 @@ esp_err_t temperature_get_all(float *data)
         uint32_t raw = esp_random();
         temps[i] = (raw % (30 - 25 + 1)) + 25;
     }
+    g_temperature_sensor_count = 10;
 #else
     esp_err_t ret = ds18x20_measure_and_read_multi(
         TEMPERATURE_GPIO,

@@ -41,10 +41,15 @@ void app_send_task(void *args)
     {
         if (esp_timer_get_time() - timer_current >= APP_TIME_SEND_US)
         {
-            sensor.temp[0] = temperature_get(1);
+            ret = temperature_get_all(&sensor.temp);
+            if(ret!= ESP_OK)
+            {
+                ESP_LOGE(TAG,"Failed to get temperature values. (%s)", esp_err_to_name(ret));    
+            }
+            // sensor.temp[0] = temperature_get(1);
             // for (uint8_t i = 0; i < TEMPERATURE_MAX_SENSOR_COUNT; i++)
             // {
-            //     ESP_LOGI(TAG, "temp sensor [%d]: %.2f", 0, sensor.temp[0]);
+            //     ESP_LOGI(TAG, "temp sensor [%d]: %.2f", i, sensor.temp[i]);
             // }
             sensor.hum = humidity_get();
 
